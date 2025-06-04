@@ -1,0 +1,57 @@
+package db
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"time"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+var DB *gorm.DB
+
+// Init устанавливает соединение с БД и применяет миграции.
+// Если вы хотите откладывать применение миграций до отдельного шага (например, через makefile),
+// можно вынести вызов applyMigrations в main.go.
+func Init() {
+	// 1. Считать параметры из окружения
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+	sslmode := os.Getenv("DB_SSLMODE") // обычно "disable", можно вынести в .env
+
+	if host == "" || port == "" || user == "" || password == "" || dbname == "" {
+		log.Fatal("DB: отсутствуют обязательные переменные окружения (DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME)")
+	}
+
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
+		host, user, password, dbname, port, sslmode,
+	)
+
+	// 2. Открыть соединение через GORM
+	var err error
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		log.Fatalf("DB: не удалось подключиться к базе данных: %v", err)
+	}
+
+	// 3. Настроить параметры «низкоуровневого» sql.DB
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Fatalf("DB: не удалось получить объект sql.DB: %v", err)
+	}
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetConnMaxLifetime(time.Minute * 5)
+
+	log.Println("DB: подключение установлено")
+
+}

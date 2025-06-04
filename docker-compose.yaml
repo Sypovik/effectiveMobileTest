@@ -17,6 +17,9 @@ services:
       - DB_NAME=people
       - PORT=8080
     restart: unless-stopped
+    tty: true
+    volumes:
+      - .:/app
 
   db:
     image: postgres:17-alpine
@@ -26,6 +29,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: people
-    volumes:
-      - ./data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./data:/var/lib/postgresql/data
     restart: unless-stopped
