@@ -22,6 +22,7 @@ type Config struct {
 	DBUser     string `env:"DB_USER"`
 	DBPassword string `env:"DB_PASSWORD"`
 	DBName     string `env:"DB_NAME"`
+	DBSslmode  string `env:"DB_SSLMODE"`
 }
 
 func LoadConfig() *Config {
