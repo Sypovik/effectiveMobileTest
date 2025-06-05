@@ -53,6 +53,9 @@ func (r *PgPersonRepository) List(ctx context.Context, filter PersonFilter) (res
 	if filter.Gender != nil {
 		query = query.Where("gender = ?", *filter.Gender)
 	}
+	if filter.Gender != nil {
+		query = query.Where("patronymic = ?", *filter.Patronymic)
+	}
 	if filter.Country != nil {
 		query = query.Where("country = ?", *filter.Country)
 	}

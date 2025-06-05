@@ -20,13 +20,14 @@ import (
 
 // PersonFilter — для фильтрации и пагинации в методе List.
 type PersonFilter struct {
-	Name    *string // частичное/точное совпадение по имени
-	Surname *string // частичное/точное совпадение по фамилии
-	Age     *int    // равенство по возрасту (или nil, чтобы не фильтровать)
-	Gender  *string
-	Country *string
-	Limit   int // число записей на страницу
-	Offset  int // смещение (для пагинации)
+	Name       *string // частичное/точное совпадение по имени
+	Surname    *string // частичное/точное совпадение по фамилии
+	Age        *int    // равенство по возрасту (или nil, чтобы не фильтровать)
+	Gender     *string
+	Patronymic *string
+	Country    *string
+	Limit      int // число записей на страницу
+	Offset     int // смещение (для пагинации)
 }
 
 // PersonRepository описывает CRUD-операции и получение списка с фильтрами.

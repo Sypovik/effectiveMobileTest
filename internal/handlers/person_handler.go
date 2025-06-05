@@ -1,61 +1,147 @@
 package handlers
 
 import (
+	"net/http"
+	"strconv"
+
+	"github.com/Sypovik/effectiveMobileTest/internal/dto"
+	"github.com/Sypovik/effectiveMobileTest/internal/repository"
 	"github.com/Sypovik/effectiveMobileTest/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
-// PersonHandler хранит зависимость на service (интерфейс).
 type PersonHandler struct {
-	Service services.PersonService // см. ниже: интерфейс в service
+	Service services.PersonService
 }
 
-// RegisterPersonRoutes регистрирует все маршруты, связанные с /people.
 func RegisterPersonRoutes(r *gin.Engine, svc services.PersonService) {
 	h := &PersonHandler{Service: svc}
-
 	grp := r.Group("/people")
 	{
-		grp.POST("", h.CreatePerson)       // POST   /people
-		grp.GET("", h.ListPersons)         // GET    /people
-		grp.GET("/:id", h.GetPersonByID)   // GET    /people/{id}
-		grp.PUT("/:id", h.UpdatePerson)    // PUT    /people/{id}    (или PATCH)
-		grp.DELETE("/:id", h.DeletePerson) // DELETE /people/{id}
+		grp.POST("", h.CreatePerson)
+		grp.GET("", h.ListPersons)
+		grp.GET("/:id", h.GetPersonByID)
+		grp.PUT("/:id", h.UpdatePerson)
+		grp.DELETE("/:id", h.DeletePerson)
 	}
 }
 
-// CreatePerson — хендлер для POST /people
 func (h *PersonHandler) CreatePerson(c *gin.Context) {
-	// 1. Привести JSON → dto.CreatePersonRequest
-	// 2. Вызвать h.Service.Create(ctx, dto)
-	// 3. Вернуть JSON dto.PersonResponse или ошибку
+	var req dto.CreatePersonRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	person, err := h.Service.Create(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, person)
 }
 
-// ListPersons — хендлер для GET /people?name=&surname=&page=&size=&gender=&country=
 func (h *PersonHandler) ListPersons(c *gin.Context) {
-	// 1. Считать query-параметры (page, size, фильтры)
-	// 2. Вызвать h.Service.List(ctx, filters, pagination)
-	// 3. Вернуть JSON dto.ListPersonsResponse
+	var filter repository.PersonFilter
+
+	// Параметры фильтрации
+	if name := c.Query("name"); name != "" {
+		filter.Name = &name
+	}
+	if surname := c.Query("surname"); surname != "" {
+		filter.Surname = &surname
+	}
+	if patronymic := c.Query("patronymic"); patronymic != "" {
+		filter.Patronymic = &patronymic
+	}
+	if gender := c.Query("gender"); gender != "" {
+		filter.Gender = &gender
+	}
+	if country := c.Query("country"); country != "" {
+		filter.Country = &country
+	}
+	if ageStr := c.Query("age"); ageStr != "" {
+		if age, err := strconv.Atoi(ageStr); err == nil {
+			filter.Age = &age
+		}
+	}
+
+	// Пагинация
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 10
+	}
+	filter.Limit = size
+	filter.Offset = (page - 1) * size
+
+	list, err := h.Service.List(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	list.Page = page
+	list.Size = size
+	c.JSON(http.StatusOK, list)
 }
 
-// GetPersonByID — хендлер для GET /people/{id}
 func (h *PersonHandler) GetPersonByID(c *gin.Context) {
-	// 1. Прочитать id из path
-	// 2. h.Service.GetByID(ctx, id)
-	// 3. Вернуть JSON dto.PersonResponse или 404
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	person, err := h.Service.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "person not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, person)
 }
 
-// UpdatePerson — хендлер для PUT /people/{id}
 func (h *PersonHandler) UpdatePerson(c *gin.Context) {
-	// 1. Прочитать id из path
-	// 2. Привести JSON → dto.UpdatePersonRequest
-	// 3. h.Service.Update(ctx, id, dto)
-	// 4. Вернуть JSON обновлённой dto.PersonResponse
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	var req dto.UpdatePersonRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	person, err := h.Service.Update(c.Request.Context(), id, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, person)
 }
 
-// DeletePerson — хендлер для DELETE /people/{id}
 func (h *PersonHandler) DeletePerson(c *gin.Context) {
-	// 1. Прочитать id из path
-	// 2. h.Service.Delete(ctx, id)
-	// 3. Вернуть статус 204 No Content
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	if err := h.Service.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
