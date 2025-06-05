@@ -3,27 +3,29 @@ package db
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
+	"github.com/Sypovik/effectiveMobileTest/internal/config"
+	"github.com/Sypovik/effectiveMobileTest/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-var DB *gorm.DB
+// var DB *gorm.DB
 
 // Init устанавливает соединение с БД и применяет миграции.
 // Если вы хотите откладывать применение миграций до отдельного шага (например, через makefile),
 // можно вынести вызов applyMigrations в main.go.
-func Init() {
+func Init() *gorm.DB {
 	// 1. Считать параметры из окружения
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-	sslmode := os.Getenv("DB_SSLMODE") // обычно "disable", можно вынести в .env
+	config := config.LoadConfig()
+	host := config.DBHost
+	port := config.DBPort
+	password := config.DBPassword
+	dbname := config.DBName
+	user := config.DBUser
+	sslmode := config.DBSslmode // обычно "disable", можно вынести в .env
 
 	if host == "" || port == "" || user == "" || password == "" || dbname == "" {
 		log.Fatal("DB: отсутствуют обязательные переменные окружения (DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME)")
@@ -36,13 +38,13 @@ func Init() {
 
 	// 2. Открыть соединение через GORM
 	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	DB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		log.Fatalf("DB: не удалось подключиться к базе данных: %v", err)
 	}
-
+	DB.AutoMigrate(&models.Person{})
 	// 3. Настроить параметры «низкоуровневого» sql.DB
 	sqlDB, err := DB.DB()
 	if err != nil {
@@ -54,4 +56,5 @@ func Init() {
 
 	log.Println("DB: подключение установлено")
 
+	return DB
 }
