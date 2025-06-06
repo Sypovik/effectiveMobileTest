@@ -1,0 +1,265 @@
+basePath: /
+definitions:
+  github_com_Sypovik_effectiveMobileTest_internal_dto.CreatePersonRequest:
+    properties:
+      name:
+        example: Ivan
+        type: string
+      patronymic:
+        example: Ivanovich
+        type: string
+      surname:
+        example: Ivanov
+        type: string
+    required:
+    - name
+    - surname
+    type: object
+  github_com_Sypovik_effectiveMobileTest_internal_dto.ListPersonsResponse:
+    description: Paginated list of persons with total count
+    properties:
+      data:
+        description: array of records
+        items:
+          $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse'
+        type: array
+      page:
+        description: current page
+        example: 1
+        type: integer
+      size:
+        description: page size
+        example: 10
+        type: integer
+      total:
+        description: total number of records
+        example: 100
+        type: integer
+    type: object
+  github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse:
+    description: Person information with age, gender and country
+    properties:
+      age:
+        example: 30
+        type: integer
+      country:
+        example: RU
+        type: string
+      created_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      gender:
+        example: мужской
+        type: string
+      id:
+        example: 1
+        type: integer
+      name:
+        example: Иван
+        type: string
+      patronymic:
+        example: Иванович
+        type: string
+      surname:
+        example: Иванов
+        type: string
+      updated_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+    type: object
+  github_com_Sypovik_effectiveMobileTest_internal_dto.UpdatePersonRequest:
+    properties:
+      name:
+        example: Ivan
+        type: string
+      patronymic:
+        example: Ivanovich
+        type: string
+      surname:
+        example: Ivanov
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for managing persons
+  title: Effective Mobile Test API
+  version: "1.0"
+paths:
+  /people:
+    get:
+      description: Returns a list of persons with pagination and filtering
+      parameters:
+      - description: Filter by name
+        in: query
+        name: name
+        type: string
+      - description: Filter by surname
+        in: query
+        name: surname
+        type: string
+      - description: Filter by patronymic
+        in: query
+        name: patronymic
+        type: string
+      - description: Filter by gender
+        in: query
+        name: gender
+        type: string
+      - description: Filter by country
+        in: query
+        name: country
+        type: string
+      - description: Filter by age
+        in: query
+        name: age
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of persons
+          schema:
+            $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.ListPersonsResponse'
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: List persons
+      tags:
+      - people
+    post:
+      consumes:
+      - application/json
+      description: Создает новую запись о человеке
+      parameters:
+      - description: Данные для создания персоны
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.CreatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Успешно создано
+          schema:
+            $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: object
+      summary: Создать новую персону
+      tags:
+      - people
+  /people/{id}:
+    delete:
+      description: Удаляет запись о человеке по его ID
+      parameters:
+      - description: ID персоны
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Успешно удалено
+        "400":
+          description: Неверный запрос
+          schema:
+            type: object
+        "404":
+          description: Персона не найдена
+          schema:
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: object
+      summary: Удалить персону
+      tags:
+      - people
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о человеке по его идентификатору
+      parameters:
+      - description: ID персоны
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse'
+        "400":
+          description: Неверный ID
+          schema:
+            type: object
+        "404":
+          description: Персона не найдена
+          schema:
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: object
+      summary: Получить персону по ID
+      tags:
+      - people
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о человеке по его идентификатору
+      parameters:
+      - description: ID персоны
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.UpdatePersonRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            type: object
+        "404":
+          description: Персона не найдена
+          schema:
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            type: object
+      summary: Обновить данные персоны
+      tags:
+      - people
+swagger: "2.0"

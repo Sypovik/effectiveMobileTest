@@ -1,0 +1,389 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API for managing persons",
+        "title": "Effective Mobile Test API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/people": {
+            "get": {
+                "description": "Returns a list of persons with pagination and filtering",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "List persons",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by surname",
+                        "name": "surname",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by patronymic",
+                        "name": "patronymic",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by gender",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by country",
+                        "name": "country",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by age",
+                        "name": "age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of persons",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.ListPersonsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создает новую запись о человеке",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Создать новую персону",
+                "parameters": [
+                    {
+                        "description": "Данные для создания персоны",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.CreatePersonRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Успешно создано",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/people/{id}": {
+            "get": {
+                "description": "Возвращает информацию о человеке по его идентификатору",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Получить персону по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID персоны",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный ID",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Персона не найдена",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Обновляет информацию о человеке по его идентификатору",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "people"
+                ],
+                "summary": "Обновить данные персоны",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID персоны",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для обновления",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.UpdatePersonRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Персона не найдена",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет запись о человеке по его ID",
+                "tags": [
+                    "people"
+                ],
+                "summary": "Удалить персону",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID персоны",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Успешно удалено"
+                    },
+                    "400": {
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Персона не найдена",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_Sypovik_effectiveMobileTest_internal_dto.CreatePersonRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "surname"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Ivan"
+                },
+                "patronymic": {
+                    "type": "string",
+                    "example": "Ivanovich"
+                },
+                "surname": {
+                    "type": "string",
+                    "example": "Ivanov"
+                }
+            }
+        },
+        "github_com_Sypovik_effectiveMobileTest_internal_dto.ListPersonsResponse": {
+            "description": "Paginated list of persons with total count",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "array of records",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse"
+                    }
+                },
+                "page": {
+                    "description": "current page",
+                    "type": "integer",
+                    "example": 1
+                },
+                "size": {
+                    "description": "page size",
+                    "type": "integer",
+                    "example": 10
+                },
+                "total": {
+                    "description": "total number of records",
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "github_com_Sypovik_effectiveMobileTest_internal_dto.PersonResponse": {
+            "description": "Person information with age, gender and country",
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "country": {
+                    "type": "string",
+                    "example": "RU"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "gender": {
+                    "type": "string",
+                    "example": "мужской"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Иван"
+                },
+                "patronymic": {
+                    "type": "string",
+                    "example": "Иванович"
+                },
+                "surname": {
+                    "type": "string",
+                    "example": "Иванов"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                }
+            }
+        },
+        "github_com_Sypovik_effectiveMobileTest_internal_dto.UpdatePersonRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Ivan"
+                },
+                "patronymic": {
+                    "type": "string",
+                    "example": "Ivanovich"
+                },
+                "surname": {
+                    "type": "string",
+                    "example": "Ivanov"
+                }
+            }
+        }
+    }
+}

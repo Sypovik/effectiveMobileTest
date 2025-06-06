@@ -9,7 +9,6 @@ import (
 	"github.com/Sypovik/effectiveMobileTest/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // var DB *gorm.DB
@@ -37,10 +36,10 @@ func Init() *gorm.DB {
 	)
 
 	// 2. Открыть соединение через GORM
-	var err error
-	DB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	// DB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	// 	Logger: logger.Default.LogMode(logger.Info),
+	// })
+	DB, err := gorm.Open(postgres.Open(dsn))
 	if err != nil {
 		log.Fatalf("DB: не удалось подключиться к базе данных: %v", err)
 	}
