@@ -36,14 +36,12 @@ func Init() *gorm.DB {
 	)
 
 	// 2. Открыть соединение через GORM
-	// DB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-	// 	Logger: logger.Default.LogMode(logger.Info),
-	// })
 	DB, err := gorm.Open(postgres.Open(dsn))
 	if err != nil {
 		log.Fatalf("DB: не удалось подключиться к базе данных: %v", err)
 	}
 	DB.AutoMigrate(&models.Person{})
+
 	// 3. Настроить параметры «низкоуровневого» sql.DB
 	sqlDB, err := DB.DB()
 	if err != nil {
