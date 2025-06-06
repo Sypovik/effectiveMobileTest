@@ -5,17 +5,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
+	"github.com/Sypovik/effectiveMobileTest/internal/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func InitLogger() {
-	_ = godotenv.Load() // загружаем .env, если есть
+	config := config.LoadConfig()
 
 	// Читаем переменные окружения
-	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
-	usePretty := strings.ToLower(os.Getenv("LOG_PRETTY")) == "true"
+	logLevel := strings.ToLower(config.LogLevel)
+	usePretty := config.LogPretty
 
 	// Устанавливаем глобальный уровень (по умолчанию — Info)
 	level := zerolog.InfoLevel

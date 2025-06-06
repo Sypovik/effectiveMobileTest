@@ -33,6 +33,12 @@ type Config struct {
 	// DBSslmode - режим SSL соединения с базой данных
 	// Возможные значения: disable, require, prefer, verify-ca, verify-full
 	DBSslmode string `env:"DB_SSLMODE"`
+
+	// LogLevel - уровень логирования
+	LogLevel string `env:"LOG_LEVEL"`
+
+	// LogPretty - использовать красивый формат вывода логов
+	LogPretty bool `env:"LOG_PRETTY"`
 }
 
 // LoadConfig загружает конфигурацию из файла .env
