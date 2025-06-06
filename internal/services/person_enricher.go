@@ -1,9 +1,12 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/Sypovik/effectiveMobileTest/internal/dto"
@@ -33,130 +36,133 @@ func toDTO(p *models.Person) *dto.PersonResponse {
 	return response
 }
 
+type enrichmentResult struct {
+	Age     *int
+	Gender  *string
+	Country *string
+}
+
+func (r *enrichmentResult) setFromAPIResponse(apiResp interface{}, err error, field string) {
+	if err != nil {
+		log.Warn().Err(err).Msgf("API error for %s", field)
+		return
+	}
+
+	switch v := apiResp.(type) {
+	case *int:
+		if v != nil {
+			r.Age = v
+		}
+	case *string:
+		if v != nil {
+			switch field {
+			case "gender":
+				r.Gender = v
+			case "country":
+				r.Country = v
+			}
+		}
+	}
+}
+
+func fetchAPI(ctx context.Context, url string, target interface{}) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		return fmt.Errorf("decoding response: %w", err)
+	}
+	return nil
+}
+
+func getAge(ctx context.Context, name string) (*int, error) {
+	type response struct{ Age int }
+	var resp response
+
+	url := "https://api.agify.io/?name=" + name
+	if err := fetchAPI(ctx, url, &resp); err != nil {
+		return nil, err
+	}
+
+	if resp.Age == 0 {
+		return nil, nil
+	}
+	return &resp.Age, nil
+}
+
+func getGender(ctx context.Context, name string) (*string, error) {
+	type response struct{ Gender string }
+	var resp response
+
+	url := "https://api.genderize.io/?name=" + name
+	if err := fetchAPI(ctx, url, &resp); err != nil {
+		return nil, err
+	}
+
+	if resp.Gender == "" {
+		return nil, nil
+	}
+	return &resp.Gender, nil
+}
+
+func getCountry(ctx context.Context, name string) (*string, error) {
+	type country struct {
+		CountryID string  `json:"country_id"`
+		Prob      float64 `json:"probability"`
+	}
+	type response struct{ Country []country }
+	var resp response
+
+	url := "https://api.nationalize.io/?name=" + name
+	if err := fetchAPI(ctx, url, &resp); err != nil {
+		return nil, err
+	}
+
+	if len(resp.Country) == 0 {
+		return nil, nil
+	}
+	return &resp.Country[0].CountryID, nil
+}
+
 func enrichData(name string) (age *int, gender, country *string) {
-	type ageResp struct {
-		Age int `json:"age"`
-	}
-	type genderResp struct {
-		Gender string `json:"gender"`
-	}
-	type countryResp struct {
-		Country []struct {
-			CountryID string  `json:"country_id"`
-			Prob      float64 `json:"probability"`
-		} `json:"country"`
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-	var (
-		aResp ageResp
-		gResp genderResp
-		cResp countryResp
-	)
+	result := &enrichmentResult{}
+	var wg sync.WaitGroup
+	wg.Add(3)
 
-	client := &http.Client{Timeout: 3 * time.Second}
+	go func() {
+		defer wg.Done()
+		age, err := getAge(ctx, name)
+		result.setFromAPIResponse(age, err, "age")
+	}()
 
-	// Helper function to make requests, read body, and log
-	fetchAndDecode := func(url, logPrefix string, target interface{}) ([]byte, error) {
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			log.Error().Err(err).Msgf("%s: Ошибка создания запроса", logPrefix)
-			return nil, err
-		}
+	go func() {
+		defer wg.Done()
+		gender, err := getGender(ctx, name)
+		result.setFromAPIResponse(gender, err, "gender")
+	}()
 
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Error().Err(err).Msgf("%s: Ошибка выполнения запроса", logPrefix)
-			return nil, err
-		}
-		defer resp.Body.Close()
+	go func() {
+		defer wg.Done()
+		country, err := getCountry(ctx, name)
+		result.setFromAPIResponse(country, err, "country")
+	}()
 
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Error().Err(err).Msgf("%s: Ошибка чтения тела ответа", logPrefix)
-			return nil, err
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			log.Error().
-				Str("name", name).
-				Str("url", url).
-				Int("status", resp.StatusCode).
-				Bytes("response_body", bodyBytes).
-				Msgf("%s: Получен неожиданный статус код", logPrefix)
-			return bodyBytes, nil // Return body even on non-200 for debugging
-		}
-
-		if err := json.Unmarshal(bodyBytes, target); err != nil {
-			log.Error().
-				Err(err).
-				Str("name", name).
-				Str("url", url).
-				Bytes("raw_response", bodyBytes).
-				Msgf("%s: Ошибка декодирования JSON", logPrefix)
-			return bodyBytes, err
-		}
-		return bodyBytes, nil
-	}
-
-	// Age
-	ageURL := "https://api.agify.io/?name=" + name
-	if body, err := fetchAndDecode(ageURL, "Age API", &aResp); err == nil {
-		if aResp.Age != 0 { // Check if age was actually enriched
-			age = &aResp.Age
-			log.Info().
-				Str("name", name).
-				Int("age", *age).
-				Bytes("response_body", body).
-				Interface("decoded_data", aResp). // Log the decoded struct
-				Msg("Age API: Успешное обогащение возраста")
-		} else {
-			log.Warn().
-				Str("name", name).
-				Bytes("response_body", body).
-				Interface("decoded_data", aResp).
-				Msg("Age API: Возраст не получен или равен 0")
-		}
-	}
-
-	// Gender
-	genderURL := "https://api.genderize.io/?name=" + name
-	if body, err := fetchAndDecode(genderURL, "Gender API", &gResp); err == nil {
-		if gResp.Gender != "" { // Check if gender was actually enriched
-			gender = &gResp.Gender
-			log.Info().
-				Str("name", name).
-				Str("gender", *gender).
-				Bytes("response_body", body).
-				Interface("decoded_data", gResp). // Log the decoded struct
-				Msg("Gender API: Успешное обогащение пола")
-		} else {
-			log.Warn().
-				Str("name", name).
-				Bytes("response_body", body).
-				Interface("decoded_data", gResp).
-				Msg("Gender API: Пол не получен или пустой")
-		}
-	}
-
-	// Country
-	countryURL := "https://api.nationalize.io/?name=" + name
-	if body, err := fetchAndDecode(countryURL, "Country API", &cResp); err == nil {
-		if len(cResp.Country) > 0 { // Check if country was actually enriched
-			country = &cResp.Country[0].CountryID
-			log.Info().
-				Str("name", name).
-				Str("country", *country).
-				Bytes("response_body", body).
-				Interface("decoded_data", cResp). // Log the decoded struct
-				Msg("Country API: Успешное обогащение национальности")
-		} else {
-			log.Warn().
-				Str("name", name).
-				Bytes("response_body", body).
-				Interface("decoded_data", cResp).
-				Msg("Country API: Национальность не получена или список стран пуст")
-		}
-	}
-
-	return
+	wg.Wait()
+	return result.Age, result.Gender, result.Country
 }
