@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "github.com/Sypovik/effectiveMobileTest/docs" // docs генерируются Swag CLI
+	"github.com/Sypovik/effectiveMobileTest/internal/config"
 	"github.com/Sypovik/effectiveMobileTest/internal/db"
 	"github.com/Sypovik/effectiveMobileTest/internal/handlers"
 	"github.com/Sypovik/effectiveMobileTest/internal/logger"
@@ -19,16 +20,34 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
+	config := config.LoadConfig()
+	port := config.Port
 
+	// инициализируем логгер
 	logger.InitLogger()
 
-	d := db.Init()
-	r := repository.NewPgPersonRepository(d)
-	s := services.NewPersonService(r)
+	// инициализируем БД
+	dbConn := db.Init()
+
+	// инициализируем репозиторий
+	personRepo := repository.NewPgPersonRepository(dbConn)
+
+	// инициализируем сервис
+	personService := services.NewPersonService(personRepo)
+
+	// создаем роутер
 	router := gin.Default()
+
+	// добавляем swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// добавляем middleware для логирования
 	router.Use(middleware.ZerologContextMiddleware())
 	router.Use(middleware.LoggerMiddleware())
-	handlers.RegisterPersonRoutes(router, *s)
-	router.Run()
+
+	// регистрируем роуты
+	handlers.RegisterPersonRoutes(router, *personService)
+
+	// запускаем роутер
+	router.Run(":" + port)
 }

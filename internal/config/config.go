@@ -8,35 +8,49 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-// DB_HOST
-// DB_PORT
-// DB_USER
-// DB_PASSWORD
-// DB_NAME
-// PORT
-
 type Config struct {
-	Port       string `env:"PORT"`
-	DBHost     string `env:"DB_HOST"`
-	DBPort     string `env:"DB_PORT"`
-	DBUser     string `env:"DB_USER"`
+	// Port - порт, на котором будет запущен HTTP сервер
+	// По умолчанию: 8080
+	Port string `env:"PORT"`
+
+	// DBHost - хост PostgreSQL базы данных
+	// По умолчанию: localhost
+	DBHost string `env:"DB_HOST"`
+
+	// DBPort - порт PostgreSQL базы данных
+	// По умолчанию: 5432
+	DBPort string `env:"DB_PORT"`
+
+	// DBUser - имя пользователя для подключения к базе данных
+	DBUser string `env:"DB_USER"`
+
+	// DBPassword - пароль для подключения к базе данных
 	DBPassword string `env:"DB_PASSWORD"`
-	DBName     string `env:"DB_NAME"`
-	DBSslmode  string `env:"DB_SSLMODE"`
+
+	// DBName - имя базы данных
+	DBName string `env:"DB_NAME"`
+
+	// DBSslmode - режим SSL соединения с базой данных
+	// Возможные значения: disable, require, prefer, verify-ca, verify-full
+	DBSslmode string `env:"DB_SSLMODE"`
 }
 
+// LoadConfig загружает конфигурацию из файла .env
+// Если файл не найден или есть ошибки при чтении - приложение падает с ошибкой
 func LoadConfig() *Config {
-	fmt.Println("asdasd")
+	fmt.Println("Загрузка конфигурации...")
 	configPath := ".env"
 	var cfg Config
 
+	// Проверяем существование файла конфигурации
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("config file not found: %s", err)
+		log.Fatalf("Файл конфигурации не найден: %s", err)
 	}
 
+	// Парсим конфигурацию из файла
 	err := cleanenv.ReadConfig(configPath, &cfg)
-	if os.IsNotExist(err) {
-		log.Fatalf("error reading config file: %s", err)
+	if err != nil {
+		log.Fatalf("Ошибка при чтении конфигурации: %s", err)
 	}
 
 	return &cfg
